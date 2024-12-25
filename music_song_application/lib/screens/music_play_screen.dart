@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../models/play_list_model.dart';
+import 'play_list_screen.dart';
 
 class MusicPlayScreen extends StatefulWidget {
   final AudioPlayer audioPlayer;
@@ -23,6 +24,8 @@ class _MusicPlayScreenState extends State<MusicPlayScreen> {
   Duration currentPosition = Duration.zero;
   Duration totalDuration = Duration.zero;
   bool isFavourite = false;
+  Song? _currentPlayingFile;
+  bool isSeeking = false;
 
   @override
   void initState() {
@@ -30,7 +33,7 @@ class _MusicPlayScreenState extends State<MusicPlayScreen> {
     currentIndex = widget.audioFiles.indexOf(widget.song);
 
     widget.audioPlayer.onPositionChanged.listen((Duration position) {
-      if (mounted) {
+      if (mounted && !isSeeking) {
         setState(() {
           currentPosition = position;
         });
@@ -53,32 +56,30 @@ class _MusicPlayScreenState extends State<MusicPlayScreen> {
       }
     });
 
-    _playAudio(widget.song.audioUrl);
+    _playAudio(widget.song);
   }
 
-  @override
-  void dispose() {
-    widget.audioPlayer.stop();
-    super.dispose();
-  }
-
-  void _playAudio(String filePath) async {
-    try {
-      await widget.audioPlayer.stop(); // Stop any currently playing audio
-      await widget.audioPlayer.play(UrlSource(filePath)); // Use UrlSource for web compatibility
-      if (mounted) {
-        setState(() {
-          isPlaying = true;
-        });
+  void _playAudio(Song song) async {
+    if (_currentPlayingFile?.audioUrl != song.audioUrl) {
+      try {
+        await widget.audioPlayer.play(UrlSource(song.audioUrl));
+        if (mounted) {
+          setState(() {
+            _currentPlayingFile = song;
+            isPlaying = true;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to play audio: $e'),
+            ),
+          );
+        }
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to play audio: $e'),
-          ),
-        );
-      }
+    } else {
+      _togglePlayPause();
     }
   }
 
@@ -98,14 +99,14 @@ class _MusicPlayScreenState extends State<MusicPlayScreen> {
   void _playNext() {
     if (currentIndex < widget.audioFiles.length - 1) {
       currentIndex++;
-      _playAudio(widget.audioFiles[currentIndex].audioUrl);
+      _playAudio(widget.audioFiles[currentIndex]);
     }
   }
 
   void _playPrevious() {
     if (currentIndex > 0) {
       currentIndex--;
-      _playAudio(widget.audioFiles[currentIndex].audioUrl);
+      _playAudio(widget.audioFiles[currentIndex]);
     }
   }
 
@@ -132,95 +133,141 @@ class _MusicPlayScreenState extends State<MusicPlayScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text('Now Playing'),
-        backgroundColor: const Color.fromARGB(255, 168, 8, 155),
+        title: Text(
+          'Playing Now',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.black,
+        elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            widget.audioPlayer.stop();
             Navigator.pop(context);
           },
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.playlist_play, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PlaylistScreen(songs: widget.audioFiles),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Album Art
             Container(
-              width: 300,
-              height: 300,
+              width: 250,
+              height: 250,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
+                shape: BoxShape.circle,
                 image: DecorationImage(
-                  image: AssetImage('assets/images/album_screen.jpg'), // Replace with your album art
+                  image: AssetImage('assets/images/album_screen.jpg'),
                   fit: BoxFit.cover,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.5),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: 20),
-            // Add to Favourite Button
-            Align(
-              alignment: Alignment.centerRight,
-              child: IconButton(
-                icon: Icon(isFavourite ? Icons.favorite : Icons.favorite_border),
-                onPressed: _toggleFavourite,
-                iconSize: 32.0,
-                color: Colors.red,
-              ),
-            ),
-            SizedBox(height: 10),
-            // Song Title
+            SizedBox(height: 30),
             Text(
               widget.audioFiles[currentIndex].title,
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
               textAlign: TextAlign.center,
             ),
             SizedBox(height: 10),
-            // Progress Bar
+            Text(
+              "Alan Walker", // Hardcoded for now
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white70,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 30),
             Slider(
-              value: currentPosition.inSeconds.toDouble(),
-              max: totalDuration.inSeconds.toDouble(),
+              activeColor: Colors.blue,
+              inactiveColor: Colors.white24,
+              value: totalDuration.inSeconds > 0
+                  ? currentPosition.inSeconds.toDouble().clamp(0, totalDuration.inSeconds.toDouble())
+                  : 0,
+              min: 0,
+              max: totalDuration.inSeconds.toDouble() > 0 ? totalDuration.inSeconds.toDouble() : 1,
               onChanged: (value) {
-                if (mounted) {
-                  setState(() {
-                    currentPosition = Duration(seconds: value.toInt());
-                  });
-                }
+                setState(() {
+                  isSeeking = true;
+                  currentPosition = Duration(seconds: value.toInt());
+                });
               },
-              onChangeEnd: (value) {
-                widget.audioPlayer.seek(Duration(seconds: value.toInt()));
+              onChangeEnd: (value) async {
+                await widget.audioPlayer.seek(Duration(seconds: value.toInt()));
+                setState(() {
+                  isSeeking = false;
+                  currentPosition = Duration(seconds: value.toInt());
+                });
               },
             ),
-            // Duration
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(_formatDuration(currentPosition)),
-                Text(_formatDuration(totalDuration)),
+                Text(
+                  _formatDuration(currentPosition),
+                  style: TextStyle(color: Colors.white70),
+                ),
+                Text(
+                  _formatDuration(totalDuration),
+                  style: TextStyle(color: Colors.white70),
+                ),
               ],
             ),
-            SizedBox(height: 20),
-            // Controls
+            SizedBox(height: 30),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
                   icon: Icon(Icons.skip_previous),
                   onPressed: _playPrevious,
-                  iconSize: 64.0,
+                  iconSize: 48.0,
+                  color: Colors.white,
                 ),
-                IconButton(
-                  icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
-                  onPressed: _togglePlayPause,
-                  iconSize: 64.0,
+                SizedBox(width: 20),
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.blue,
+                  ),
+                  child: IconButton(
+                    icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
+                    onPressed: _togglePlayPause,
+                    iconSize: 48.0,
+                    color: Colors.white,
+                  ),
                 ),
+                SizedBox(width: 20),
                 IconButton(
                   icon: Icon(Icons.skip_next),
                   onPressed: _playNext,
-                  iconSize: 64.0,
+                  iconSize: 48.0,
+                  color: Colors.white,
                 ),
               ],
             ),

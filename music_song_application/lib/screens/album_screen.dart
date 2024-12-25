@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../data/sample_data.dart';
 import '../models/album_model.dart';
 import 'album_songs_screen.dart';
 
 class AlbumScreen extends StatelessWidget {
+  final AudioPlayer audioPlayer;
+
+  AlbumScreen({required this.audioPlayer});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -34,7 +39,10 @@ class AlbumScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => AlbumSongsScreen(album: album),
+                        builder: (context) => AlbumSongsScreen(
+                          album: album,
+                          audioPlayer: audioPlayer,
+                        ),
                       ),
                     );
                   },

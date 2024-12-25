@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../data/sample_data.dart';
 import '../models/artist_model.dart';
 import 'artist_songs_screen.dart';
 
 class ArtistScreen extends StatelessWidget {
+  final AudioPlayer audioPlayer;
+
+  ArtistScreen({required this.audioPlayer});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -34,7 +39,10 @@ class ArtistScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ArtistSongsScreen(artist: artist),
+                        builder: (context) => ArtistSongsScreen(
+                          artist: artist,
+                          audioPlayer: audioPlayer,
+                        ),
                       ),
                     );
                   },

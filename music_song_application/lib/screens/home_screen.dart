@@ -66,7 +66,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   @override
   void dispose() {
-    widget.audioPlayer.stop();
     _controller.dispose();
     super.dispose();
   }
@@ -92,8 +91,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   void _playAudio(Song song) async {
     try {
-      await widget.audioPlayer.stop(); // Stop any currently playing audio
-      await widget.audioPlayer.play(UrlSource(song.audioUrl)); // Use UrlSource for web compatibility
+      await widget.audioPlayer.play(UrlSource(song.audioUrl)); 
       if (mounted) {
         setState(() {
           _currentPlayingFile = song;
@@ -125,6 +123,24 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
   }
 
+  void _playNext() {
+    if (_currentPlayingFile != null) {
+      int currentIndex = _audioFiles.indexOf(_currentPlayingFile!);
+      if (currentIndex < _audioFiles.length - 1) {
+        _playAudio(_audioFiles[currentIndex + 1]);
+      }
+    }
+  }
+
+  void _playPrevious() {
+    if (_currentPlayingFile != null) {
+      int currentIndex = _audioFiles.indexOf(_currentPlayingFile!);
+      if (currentIndex > 0) {
+        _playAudio(_audioFiles[currentIndex - 1]);
+      }
+    }
+  }
+
   void _navigateToMusicPlayScreen() {
     if (_currentPlayingFile != null) {
       Navigator.push(
@@ -149,17 +165,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text('Music Player Organizer'),
-        backgroundColor: const Color.fromARGB(255, 168, 8, 155),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.search),
-            onPressed: () {
-              // Handle search action
-            },
-          ),
-        ],
+        title: Text(
+          'Music Player Organizer',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.black,
+        elevation: 0,
       ),
       body: Column(
         children: [
@@ -171,7 +184,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 itemBuilder: (context, index) {
                   final song = _audioFiles[index];
                   return ListTile(
-                    title: Text(song.title),
+                    title: Text(
+                      song.title,
+                      style: TextStyle(color: Colors.white),
+                    ),
                     onTap: () => _playAudio(song),
                   );
                 },
@@ -180,7 +196,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ),
           if (_currentPlayingFile != null)
             Container(
-              color: Colors.grey[200],
+              color: Colors.grey[900],
               child: ListTile(
                 leading: GestureDetector(
                   onTap: _navigateToMusicPlayScreen,
@@ -190,29 +206,39 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
                       image: DecorationImage(
-                        image: AssetImage('assets/images/album_screen.jpg'), // Replace with your album art
+                        image: AssetImage('assets/images/album_screen.jpg'), 
                         fit: BoxFit.cover,
                       ),
                     ),
                   ),
                 ),
-                title: Text(_currentPlayingFile!.title),
-                trailing: IconButton(
-                  icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
-                  onPressed: _togglePlayPause,
+                title: Text(
+                  _currentPlayingFile!.title,
+                  style: TextStyle(color: Colors.white),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.skip_previous, color: Colors.white),
+                      onPressed: _playPrevious,
+                    ),
+                    IconButton(
+                      icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white),
+                      onPressed: _togglePlayPause,
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.skip_next, color: Colors.white),
+                      onPressed: _playNext,
+                    ),
+                  ],
                 ),
               ),
             ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Handle add action
-        },
-        child: Icon(Icons.add),
-        backgroundColor: const Color.fromARGB(255, 168, 8, 155),
-      ),
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Colors.black,
         items: [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
@@ -244,13 +270,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             case 1:
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => AlbumScreen()),
+                MaterialPageRoute(builder: (context) => AlbumScreen(audioPlayer: widget.audioPlayer)),
               );
               break;
             case 2:
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => ArtistScreen()),
+                MaterialPageRoute(builder: (context) => ArtistScreen(audioPlayer: widget.audioPlayer)),
               );
               break;
             case 3:

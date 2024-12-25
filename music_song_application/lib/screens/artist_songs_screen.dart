@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../models/artist_model.dart';
 import '../models/play_list_model.dart';
+import 'music_play_screen.dart';
 
 class ArtistSongsScreen extends StatelessWidget {
   final Artist artist;
+  final AudioPlayer audioPlayer;
 
-  ArtistSongsScreen({required this.artist});
+  ArtistSongsScreen({required this.artist, required this.audioPlayer});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +25,16 @@ class ArtistSongsScreen extends StatelessWidget {
             title: Text(song.title),
             subtitle: Text('Duration: ${song.duration.inMinutes}:${song.duration.inSeconds.remainder(60).toString().padLeft(2, '0')}'),
             onTap: () {
-              // Handle song tap to play the song
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MusicPlayScreen(
+                    audioPlayer: audioPlayer,
+                    song: song,
+                    audioFiles: artist.songs,
+                  ),
+                ),
+              );
             },
           );
         },
