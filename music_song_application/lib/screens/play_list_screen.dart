@@ -1,34 +1,119 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import '../models/play_list_model.dart';
 
 class PlaylistScreen extends StatefulWidget {
-  final List<Song> songs;
-
-  PlaylistScreen({required this.songs});
-
   @override
   _PlaylistScreenState createState() => _PlaylistScreenState();
 }
 
 class _PlaylistScreenState extends State<PlaylistScreen> {
-  List<Song> favoriteSongs = [];
-  Song? currentlyPlaying;
+  List<Song> _songs = [];
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _artistController = TextEditingController();
 
-  void toggleFavorite(Song song) {
-    setState(() {
-      if (favoriteSongs.contains(song)) {
-        favoriteSongs.remove(song);
-      } else {
-        favoriteSongs.add(song);
-      }
-    });
+  void _addSong() {
+    _titleController.clear();
+    _artistController.clear();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Add Song'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _titleController,
+                decoration: InputDecoration(labelText: 'Title'),
+              ),
+              TextField(
+                controller: _artistController,
+                decoration: InputDecoration(labelText: 'Artist'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _songs.add(Song(
+                    id: DateTime.now().toString(),
+                    title: _titleController.text,
+                    albumId: '', // Placeholder, update as needed
+                    artistId: '', // Placeholder, update as needed
+                    duration: Duration(minutes: 3), // Placeholder, update as needed
+                    audioUrl: '', // Placeholder, update as needed
+                  ));
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
-  void playSong(Song song) {
+  void _editSong(int index) {
+    _titleController.text = _songs[index].title;
+    _artistController.text = _songs[index].artistId; // Assuming artistId is the correct property
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Edit Song'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _titleController,
+                decoration: InputDecoration(labelText: 'Title'),
+              ),
+              TextField(
+                controller: _artistController,
+                decoration: InputDecoration(labelText: 'Artist'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _songs[index] = Song(
+                    id: _songs[index].id,
+                    title: _titleController.text,
+                    albumId: _songs[index].albumId,
+                    artistId: _artistController.text, // Assuming artistId is the correct property
+                    duration: _songs[index].duration,
+                    audioUrl: _songs[index].audioUrl,
+                  );
+                });
+                Navigator.of(context).pop();
+              },
+              child: Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _deleteSong(int index) {
     setState(() {
-      currentlyPlaying = song;
+      _songs.removeAt(index);
     });
   }
 
@@ -43,59 +128,44 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
         ),
         backgroundColor: Colors.black,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.add, color: Colors.white),
+            onPressed: _addSong,
+          ),
+        ],
       ),
-      body: Column(
+      body: ReorderableListView(
+        onReorder: (int oldIndex, int newIndex) {
+          setState(() {
+            if (newIndex > oldIndex) {
+              newIndex -= 1;
+            }
+            final Song song = _songs.removeAt(oldIndex);
+            _songs.insert(newIndex, song);
+          });
+        },
         children: [
-          if (currentlyPlaying != null)
-            Container(
-              padding: EdgeInsets.all(16.0),
-              child: Column(
+          for (int index = 0; index < _songs.length; index++)
+            ListTile(
+              key: ValueKey(_songs[index]),
+              leading: Icon(Icons.music_note, color: Colors.white),
+              title: Text(_songs[index].title, style: TextStyle(color: Colors.white)),
+              subtitle: Text('Artist: ${_songs[index].artistId}', style: TextStyle(color: Colors.white70)), // Assuming artistId is the correct property
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundImage: AssetImage('assets/images/album_screen.jpg'),
+                  IconButton(
+                    icon: Icon(Icons.edit, color: Colors.white),
+                    onPressed: () => _editSong(index),
                   ),
-                  SizedBox(height: 10),
-                  Text(
-                    currentlyPlaying!.title,
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  Text(
-                    currentlyPlaying!.artistId,
-                    style: TextStyle(color: Colors.white70),
+                  IconButton(
+                    icon: Icon(Icons.delete, color: Colors.white),
+                    onPressed: () => _deleteSong(index),
                   ),
                 ],
               ),
             ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: widget.songs.length,
-              itemBuilder: (context, index) {
-                final song = widget.songs[index];
-                return ListTile(
-                  leading: Icon(Icons.music_note, color: Colors.white),
-                  title: Text(song.title, style: TextStyle(color: Colors.white)),
-                  subtitle: Text('Artist: ${song.artistId}', style: TextStyle(color: Colors.white70)),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          favoriteSongs.contains(song) ? Icons.favorite : Icons.favorite_border,
-                          color: favoriteSongs.contains(song) ? Colors.red : Colors.white,
-                        ),
-                        onPressed: () => toggleFavorite(song),
-                      ),
-                      IconButton(
-                        icon: Icon(currentlyPlaying == song ? Icons.pause : Icons.play_arrow, color: Colors.white),
-                        onPressed: () => playSong(song),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
         ],
       ),
     );

@@ -18,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   List<Song> _audioFiles = [];
+  Set<Song> favoriteSongs = {};
   late AnimationController _controller;
   late Animation<double> _animation;
   Song? _currentPlayingFile;
@@ -162,6 +163,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
   }
 
+  void toggleFavorite(Song song) {
+    setState(() {
+      if (favoriteSongs.contains(song)) {
+        favoriteSongs.remove(song);
+      } else {
+        favoriteSongs.add(song);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -173,6 +184,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         ),
         backgroundColor: Colors.black,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.favorite, color: Colors.white),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FavoriteSongsScreen(favoriteSongs: favoriteSongs.toList()),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -187,6 +211,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     title: Text(
                       song.title,
                       style: TextStyle(color: Colors.white),
+                    ),
+                    subtitle: Text('Artist: ${song.artistId}', style: TextStyle(color: Colors.white70)),
+                    trailing: IconButton(
+                      icon: Icon(
+                        favoriteSongs.contains(song) ? Icons.favorite : Icons.favorite_border,
+                        color: favoriteSongs.contains(song) ? Colors.red : Colors.white,
+                      ),
+                      onPressed: () => toggleFavorite(song),
                     ),
                     onTap: () => _playAudio(song),
                   );
@@ -282,7 +314,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             case 3:
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => FavoriteSongsScreen()),
+                MaterialPageRoute(builder: (context) => FavoriteSongsScreen(favoriteSongs: favoriteSongs.toList())),
               );
               break;
           }

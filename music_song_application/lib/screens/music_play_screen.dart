@@ -130,6 +130,7 @@ class _MusicPlayScreenState extends State<MusicPlayScreen> {
     return '$minutes:$seconds';
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -154,7 +155,7 @@ class _MusicPlayScreenState extends State<MusicPlayScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => PlaylistScreen(songs: widget.audioFiles),
+                  builder: (context) => PlaylistScreen(),
                 ),
               );
             },
@@ -196,7 +197,7 @@ class _MusicPlayScreenState extends State<MusicPlayScreen> {
             ),
             SizedBox(height: 10),
             Text(
-              "Alan Walker", // Hardcoded for now
+              widget.audioFiles[currentIndex].artistId,
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.white70,
@@ -252,6 +253,7 @@ class _MusicPlayScreenState extends State<MusicPlayScreen> {
                 SizedBox(width: 20),
                 Container(
                   decoration: BoxDecoration(
+
                     shape: BoxShape.circle,
                     color: Colors.blue,
                   ),
